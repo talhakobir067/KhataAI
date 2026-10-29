@@ -208,6 +208,7 @@ export interface EvaluationResult {
   legibilitySummary?: string;
   teacherRemarks?: string;
   isApprovedByTeacher: boolean;
+  ocrRecognizedText?: string;
   questionEvaluations: QuestionEvaluation[];
 }
 

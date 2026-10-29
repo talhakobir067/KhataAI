@@ -218,13 +218,50 @@ export default function GradingReviewWorkspace({
             </p>
           </div>
 
-          {/* Questions Evaluation Breakdown */}
-          <div className="space-y-4">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Questions & Step Marks Breakdown
-            </h3>
+          {/* Workspace Tabs */}
+          <div className="flex items-center gap-2 border-b border-border pb-2">
+            <button
+              onClick={() => setActiveTab("questions")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                activeTab === "questions"
+                  ? "bg-emerald-600 text-white shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Step Marks Breakdown
+            </button>
+            <button
+              onClick={() => setActiveTab("ocr")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                activeTab === "ocr"
+                  ? "bg-emerald-600 text-white shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Vision OCR Recognized Text
+            </button>
+          </div>
 
-            {evaluation.questionEvaluations.map((q, idx) => (
+          {activeTab === "ocr" ? (
+            <div className="p-4 rounded-xl border border-border bg-background space-y-2 font-mono text-xs text-foreground">
+              <div className="text-[11px] font-bold text-muted-foreground uppercase font-sans flex items-center justify-between">
+                <span>Extracted Student Script Text:</span>
+                <span className="text-emerald-600 font-bold">OCR Processed</span>
+              </div>
+              <div className="whitespace-pre-wrap leading-relaxed bg-muted/20 p-3 rounded-lg border border-border">
+                {evaluation.ocrRecognizedText ||
+                  evaluation.questionEvaluations[0]?.extractedText ||
+                  "No text recognized in script."}
+              </div>
+            </div>
+          ) : (
+            /* Questions Evaluation Breakdown */
+            <div className="space-y-4">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Questions & Step Marks Breakdown
+              </h3>
+
+              {evaluation.questionEvaluations.map((q, idx) => (
               <div
                 key={q.questionId}
                 className="rounded-xl border border-border bg-background p-4 space-y-3"
@@ -296,6 +333,7 @@ export default function GradingReviewWorkspace({
               </div>
             ))}
           </div>
+          )}
 
           {/* Teacher Personal Remarks */}
           <div className="space-y-1.5 pt-2">

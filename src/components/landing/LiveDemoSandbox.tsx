@@ -408,12 +408,11 @@ export function LiveDemoSandbox() {
 
     setIsEvaluating(true);
     setEvaluationResult(null);
+    setProgressStep(0);
 
-    // Progress animation
-    for (let i = 0; i < steps.length; i++) {
-      setProgressStep(i);
-      await new Promise((resolve) => setTimeout(resolve, 450));
-    }
+    const stepInterval = setInterval(() => {
+      setProgressStep((prev) => (prev < steps.length - 1 ? prev + 1 : prev));
+    }, 450);
 
     try {
       let payload: any = {
@@ -477,10 +476,14 @@ export function LiveDemoSandbox() {
       const data = await res.json();
       if (data.evaluation) {
         setEvaluationResult(data.evaluation);
+      } else if (data.error) {
+        setInputError(`মূল্যায়নে সমস্যা হয়েছে: ${data.error}`);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Evaluation error:", err);
+      setInputError("সার্ভার থেকে উত্তর পেতে সমস্যা হয়েছে। অনুগ্রহ করে পুনরায় চেষ্টা করুন।");
     } finally {
+      clearInterval(stepInterval);
       setIsEvaluating(false);
     }
   };
@@ -1115,12 +1118,16 @@ export function LiveDemoSandbox() {
                   {activeResultTab === "ocr" && (
                     <div className="p-4 rounded-2xl border border-border bg-muted/20 font-mono text-xs text-foreground space-y-2 max-h-[380px] overflow-y-auto">
                       <div className="text-[11px] font-bold text-muted-foreground uppercase font-sans flex items-center justify-between">
-                        <span>Recognized Student Text:</span>
-                        <span className="text-emerald-600 font-bold">Processed</span>
+                        <span>Recognized Student Text (Vision OCR):</span>
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold text-[10px]">
+                          OCR Processed
+                        </span>
                       </div>
-                      <div className="whitespace-pre-wrap leading-relaxed text-muted-foreground">
-                        {studentWrittenAnswer ||
-                          (demoMode === "mock" ? activeMock.modelAnswer : customModelAnswer)}
+                      <div className="whitespace-pre-wrap leading-relaxed text-foreground bg-background/60 p-3 rounded-xl border border-border/80">
+                        {evaluationResult?.ocrRecognizedText ||
+                          evaluationResult?.questionEvaluations?.[0]?.extractedText ||
+                          studentWrittenAnswer ||
+                          "⚠️ কোনো হস্তাক্ষর বা টেক্সট সনাক্ত করা যায়নি।"}
                       </div>
                     </div>
                   )}
