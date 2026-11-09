@@ -1,4 +1,4 @@
-export type UserRole = "STUDENT" | "TEACHER" | "ADMIN";
+export type UserRole = "STUDENT" | "TEACHER" | "ADMIN" | "student" | "teacher" | "institution";
 
 export type InstitutionType = "COACHING" | "SCHOOL" | "COLLEGE" | "VARSITY" | "INDIVIDUAL";
 
@@ -30,6 +30,10 @@ export interface User {
   institutionSlug?: string;
   avatarUrl?: string;
   phone?: string;
+  institution_name?: string;
+  student_id?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export type CurriculumCategory = "BANGLADESHI_NATIONAL" | "VARSITY_ADMISSION" | "JOB_RECRUITMENT" | "INTERNATIONAL" | "CUSTOM";
@@ -54,8 +58,10 @@ export type QuestionType = "MCQ" | "CQ" | "DESCRIPTIVE" | "IELTS_TASK";
 export interface MCQOption {
   id: string;
   text: string;
-  isCorrect: boolean;
+  isCorrect?: boolean;
   explanation?: string;
+  label?: string;
+  is_correct?: boolean;
 }
 
 export interface RubricPoint {
@@ -102,10 +108,12 @@ export interface Question {
 export interface Batch {
   id: string;
   institutionSlug: string;
+  institution_id?: string;
   name: string;
   description?: string;
   curriculumCode?: string;
   createdAt: string;
+  created_at?: string;
   enrolledStudentsCount?: number;
 }
 
@@ -125,7 +133,7 @@ export interface Exam {
   id: string;
   title: string;
   subject: string;
-  curriculumCode: string; // 'SSC', 'HSC', 'IELTS', 'DU_A', 'BUET', 'BCS', etc.
+  curriculumCode: string;
   creatorId: string;
   creatorName: string;
   totalMarks: number;
@@ -144,6 +152,17 @@ export interface Exam {
   institutionSlug?: string;
   batchId?: string;
   batchName?: string;
+  subject_id?: string;
+  subject_name?: string;
+  total_marks?: number;
+  duration_minutes?: number;
+  status?: string;
+  join_code?: string;
+  created_by?: string;
+  created_at?: string;
+  updated_at?: string;
+  question_count?: number;
+  description?: string;
 }
 
 export interface SubmissionAnswer {
@@ -258,4 +277,29 @@ export interface GlobalAISettings {
   providers: Record<string, AIProviderConfig>;
   perCurriculumOverrides: Record<string, { provider: string; modelId: string }>;
   fallbackEnabled: boolean;
+}
+
+
+export interface RubricCriterion {
+  id?: string;
+  description: string;
+  marks: number;
+  order?: number;
+}
+
+export interface Subject {
+  id: string;
+  name: string;
+  batch_id: string;
+  code?: string;
+  description?: string;
+  created_at: string;
+}
+
+export interface Institution {
+  id: string;
+  name: string;
+  owner_id: string;
+  logo_url?: string;
+  created_at: string;
 }

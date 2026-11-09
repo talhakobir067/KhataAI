@@ -1,12 +1,12 @@
 import { cookies } from "next/headers";
 import { store } from "@/lib/store";
-import { User, InstitutionProfile } from "@/lib/types";
+import { User, InstitutionProfile, UserRole } from "@/lib/types";
 
 export interface SessionUserData {
   id: string;
   name: string;
   email: string;
-  role: "STUDENT" | "TEACHER" | "ADMIN";
+  role: UserRole;
   institution?: string;
 }
 

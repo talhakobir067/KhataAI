@@ -64,8 +64,8 @@ export async function POST(req: Request) {
       submission = store.createSubmission({
         examId: exam.id,
         examTitle: exam.title,
-        subject: exam.subject,
-        curriculumCode: exam.curriculumCode,
+        subject: exam.subject || exam.subject_name || "General",
+        curriculumCode: exam.curriculumCode || "HSC",
         studentId: currentUser?.id || "guest_evaluator",
         studentName: currentUser?.name || "Independent Examinee",
         status: "EVALUATING",
