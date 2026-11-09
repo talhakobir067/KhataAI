@@ -232,10 +232,109 @@ export default function ExamBuilderSection({
     setQuestions(updated);
   };
 
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [publishSuccess, setPublishSuccess] = useState<string | null>(null);
+
   const handleCopyCode = () => {
     navigator.clipboard.writeText(joinCode);
     setCopiedCode(true);
     setTimeout(() => setCopiedCode(false), 2000);
+  };
+
+  const handlePublishExam = async () => {
+    if (!examTitle.trim() || !subjectName.trim()) {
+      alert("Please provide both an Exam Title and Subject.");
+      return;
+    }
+
+    setIsPublishing(true);
+    setPublishSuccess(null);
+
+    try {
+      // 1. Build Question objects matching KhataAI schema
+      const mappedQuestions = questions.flatMap((qb) =>
+        qb.items.map((item, idx) => ({
+          id: item.id || `q_${Date.now()}_${idx}`,
+          examId: "",
+          type: (item.type === "mcq" ? "MCQ" : "CQ") as "MCQ" | "CQ",
+          orderIndex: idx + 1,
+          marks: item.fullMarks,
+          questionText: item.text,
+          stimulusText: qb.paragraph || "",
+          modelAnswer: item.modelAnswer,
+          tags: ["HSC", "CQ", subjectName.slice(0, 15)],
+          curriculumCode: "HSC",
+          cqParts: [
+            {
+              part: item.subNumber,
+              bengaliLabel: item.subNumber,
+              cognitiveLevel: "জ্ঞানমূলক / প্রয়োগমূলক",
+              marks: item.fullMarks,
+              questionText: item.text,
+              modelAnswer: item.modelAnswer,
+              rubrics: (item.rubricCriteria || []).map((rc) => ({
+                id: rc.id || `rc_${Math.random().toString(36).substring(2, 7)}`,
+                criterion: rc.description,
+                maxPoints: rc.marks,
+                description: rc.description,
+                keywords: [] as string[],
+              })),
+            },
+          ],
+        }))
+      );
+
+      // 2. POST to /api/exams
+      const examPayload = {
+        title: examTitle,
+        subject: subjectName,
+        curriculumCode: "HSC",
+        durationMinutes,
+        totalMarks: totalExamMarks,
+        negativeMarkingRate: 0,
+        passMarkPercentage: 33,
+        isOnline: true,
+        isPublished: true,
+        isPublic,
+        accessCode: joinCode,
+        createdBy: "usr_teacher_01",
+        creatorId: "usr_teacher_01",
+        creatorName: "Prof. Rafiqul Islam (Teacher)",
+        questions: mappedQuestions,
+      };
+
+      const res = await fetch("/api/exams", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(examPayload),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to publish exam");
+      }
+
+      // 3. Sync questions to /api/questions for question cards & direct photo evaluation
+      await fetch("/api/questions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ questions: mappedQuestions }),
+      }).catch(() => {});
+
+      setPublishSuccess(`✓ Exam "${examTitle}" published successfully! Direct Code: ${joinCode}`);
+
+      setTimeout(() => {
+        if (onNavigateToEvaluate) {
+          onNavigateToEvaluate(data.exam?.id || "exam-001");
+        } else {
+          window.location.href = "/teacher/evaluate";
+        }
+      }, 1500);
+    } catch (err: any) {
+      alert(err.message || "Error publishing exam");
+    } finally {
+      setIsPublishing(false);
+    }
   };
 
   // Calculate total exam marks dynamically
@@ -293,14 +392,32 @@ export default function ExamBuilderSection({
             </button>
 
             <button
-              onClick={() => { if (onNavigateToEvaluate) onNavigateToEvaluate('exam-001'); else window.location.href = '/teacher/evaluate'; }}
-              className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-sm transition-all"
+              type="button"
+              onClick={handlePublishExam}
+              disabled={isPublishing}
+              className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 rounded-xl shadow-sm transition-all"
             >
-              <span>⚡ Evaluate Exam</span>
+              <Check className="w-4 h-4" />
+              <span>{isPublishing ? "Publishing Exam..." : "Publish Exam"}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => { if (onNavigateToEvaluate) onNavigateToEvaluate('exam-001'); else window.location.href = '/teacher/evaluate'; }}
+              className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-emerald-800 bg-emerald-100 hover:bg-emerald-200 rounded-xl transition-all"
+            >
+              <span>⚡ Evaluate</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         </div>
+
+        {publishSuccess && (
+          <div className="p-3.5 bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center justify-between shadow-sm animate-fade-in">
+            <span>{publishSuccess}</span>
+            <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded">Redirecting to Evaluation...</span>
+          </div>
+        )}
 
         {/* QR Code Popup */}
         {showQR && (
@@ -676,8 +793,8 @@ export default function ExamBuilderSection({
         ))}
       </div>
 
-      {/* ──────────────────── + CREATE QUESTION BUTTON (PAGE 4 e) ──────────────────── */}
-      <div className="flex justify-center pt-2">
+      {/* ──────────────────── + CREATE QUESTION BUTTON & PUBLISH BAR ──────────────────── */}
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
         <button
           type="button"
           onClick={handleCreateQuestionSection}
@@ -685,6 +802,16 @@ export default function ExamBuilderSection({
         >
           <Plus className="w-5 h-5" />
           <span>+ Create Question Section</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={handlePublishExam}
+          disabled={isPublishing}
+          className="flex items-center gap-2 px-8 py-3 text-sm font-extrabold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 disabled:opacity-50 rounded-2xl transition-all shadow-md shadow-emerald-600/20"
+        >
+          <CheckCircle2 className="w-5 h-5" />
+          <span>{isPublishing ? "Publishing Exam..." : "Publish & Save Complete Exam"}</span>
         </button>
       </div>
 

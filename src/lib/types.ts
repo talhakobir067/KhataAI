@@ -163,6 +163,7 @@ export interface Exam {
   status?: string;
   join_code?: string;
   created_by?: string;
+  createdBy?: string;
   created_at?: string;
   updated_at?: string;
   question_count?: number;
