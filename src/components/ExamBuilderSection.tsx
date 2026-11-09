@@ -293,7 +293,7 @@ export default function ExamBuilderSection({
             </button>
 
             <button
-              onClick={() => onNavigateToEvaluate?.('exam-001')}
+              onClick={() => { if (onNavigateToEvaluate) onNavigateToEvaluate('exam-001'); else window.location.href = '/teacher/evaluate'; }}
               className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-sm transition-all"
             >
               <span>⚡ Evaluate Exam</span>

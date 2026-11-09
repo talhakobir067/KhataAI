@@ -20,6 +20,7 @@ import {
   School,
   BookOpen,
   KeyRound,
+  Layers,
 } from "lucide-react";
 
 export function Navbar() {
@@ -83,10 +84,11 @@ export function Navbar() {
   };
 
   const navLinks = [
-    { label: "Overview", href: "/" },
+    { label: "Home", href: "/" },
+    { label: "Teacher Dashboard", href: "/teacher?tab=dashboard", icon: Layers },
+    { label: "Question Cards", href: "/teacher?tab=cards", icon: Sparkles },
+    { label: "Evaluate Scripts", href: "/teacher/evaluate", icon: FileCheck2 },
     { label: "Student Arena", href: "/student", icon: GraduationCap },
-    { label: "Institution Portals", href: "/portal", icon: Building2 },
-    { label: "Plans & Pricing", href: "/pricing", icon: CreditCard },
   ];
 
   return (

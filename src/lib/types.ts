@@ -103,6 +103,10 @@ export interface Question {
   rubrics?: RubricPoint[];
   ieltsTaskType?: "TASK_1" | "TASK_2";
   ieltsMinWords?: number;
+  difficulty?: string;
+  tags?: string[];
+  curriculumCode?: string;
+  _id?: string;
 }
 
 export interface Batch {

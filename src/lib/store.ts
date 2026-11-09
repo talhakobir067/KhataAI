@@ -172,6 +172,128 @@ export const SEED_INSTITUTIONS: InstitutionProfile[] = [
 ];
 
 // In-memory data store with singleton pattern for client & serverless persistence
+
+export const SEED_STANDALONE_QUESTIONS: Question[] = [
+  {
+    id: "6af197c4c51740ae4ab6e54c",
+    _id: "6af197c4c51740ae4ab6e54c",
+    examId: "",
+    type: "CQ",
+    orderIndex: 1,
+    marks: 10,
+    difficulty: "EASY",
+    tags: ["Asik", "HSC", "CQ"],
+    curriculumCode: "HSC",
+    questionText: "সৃজনশীল প্রশ্ন নং 4: উদ্দীপকটি মনোযোগ সহকারে পড়ে নিচের প্রশ্নগুলোর উত্তর দাও:",
+    stimulusText: "উদ্দীপক-4: গতিবিদ্যা, কাজ-শক্তি-ক্ষমতা ও মহাকর্ষ সংক্রান্ত একটি ব্যবহারিক পরীক্ষায় একটি বস্তুর গতি ও শক্তি পর্যবেক্ষণ করা হলো। পর্যবেক্ষণে বিভিন্ন সময়ে সরণ ও বেগের সুনির্দিষ্ট পরিবর্তন লক্ষ্য করা যায়। অভিকর্ষজ ত্বরণ g = 9.8 m/s²।",
+    cqParts: [
+      {
+        part: "ka",
+        bengaliLabel: "ক",
+        cognitiveLevel: "জ্ঞানমূলক",
+        marks: 1,
+        questionText: "গতিবিদ্যা, কাজ-শক্তি-ক্ষমতা ও মহাকর্ষ এর মৌলিক সংজ্ঞাটি লেখো।",
+        modelAnswer: "গতিবিদ্যা, কাজ-শক্তি-ক্ষমতা ও মহাকর্ষ এর স্বীকৃত বিজ্ঞানসম্মত সংজ্ঞা।",
+        rubrics: [
+          {
+            id: "r_cq_ka_b6e",
+            criterion: "সঠিক জ্ঞানমূলক সংজ্ঞা",
+            maxPoints: 1,
+            description: "স্বীকৃত বিজ্ঞানসম্মত সংজ্ঞা লিখলে পূর্ণ ১ নম্বর।",
+            keywords: ["গতিবিদ্যা", "কাজ", "শক্তি", "মহাকর্ষ"]
+          }
+        ]
+      },
+      {
+        part: "kha",
+        bengaliLabel: "খ",
+        cognitiveLevel: "অনুধাবনমূলক",
+        marks: 2,
+        questionText: "সংরক্ষণশীল বল দ্বারা কৃতকাজ শূন্য হয় কেন? ব্যাখ্যা করো।",
+        modelAnswer: "পূর্ণ চক্রে বস্তুর প্রাথমিক ও চূড়ান্ত অবস্থান এক হওয়ায় সরণ শূন্য, ফলে মোট কাজ শূন্য।",
+        rubrics: [
+          {
+            id: "r_cq_kha_1_b6e",
+            criterion: "সংরক্ষণশীল বলের বৈশিষ্ট্য",
+            maxPoints: 1,
+            description: "সংরক্ষণশীল বলের গতিপথ নিরপেক্ষতার উল্লেখ।",
+            keywords: ["সংরক্ষণশীল বল", "পথের উপর নির্ভর করে না"]
+          },
+          {
+            id: "r_cq_kha_2_b6e",
+            criterion: "কার্যকারণ সমন্বিত ব্যাখ্যা",
+            maxPoints: 1,
+            description: "পূর্ণ চক্রে আদি ও শেষ অবস্থান এক হওয়ায় সরণ শূন্য বিধায় কাজ শূন্য।",
+            keywords: ["পূর্ণ চক্র", "সরণ শূন্য", "কাজ শূন্য"]
+          }
+        ]
+      },
+      {
+        part: "ga",
+        bengaliLabel: "গ",
+        cognitiveLevel: "প্রয়োগমূলক",
+        marks: 3,
+        questionText: "উদ্দীপকের উপাত্ত ব্যবহার করে বস্তুটির প্রয়োজনীয় মান গাণিতিকভাবে নির্ণয় করো।",
+        modelAnswer: "সূত্র নির্বাচন -> মান প্রতিস্থাপন -> সঠিক এককসহ ফলাফল।",
+        rubrics: [
+          {
+            id: "r_cq_ga_1_b6e",
+            criterion: "সঠিক সূত্র",
+            maxPoints: 1,
+            description: "সঠিক গতিবিদ্যা/মহাকর্ষ সূত্র নির্বাচন ও চলক চিহ্নিতকরণ।",
+            keywords: ["সূত্র", "সমীকরণ"]
+          },
+          {
+            id: "r_cq_ga_2_b6e",
+            criterion: "মান প্রতিস্থাপন",
+            maxPoints: 1,
+            description: "উপাত্ত থেকে প্রদত্ত মান সমীকরণে বসানো।",
+            keywords: ["মান প্রতিস্থাপন"]
+          },
+          {
+            id: "r_cq_ga_3_b6e",
+            criterion: "এককসহ উত্তর",
+            maxPoints: 1,
+            description: "সঠিক এককসহ চূড়ান্ত নির্ভুল ফলাফল।",
+            keywords: ["একক", "ফলাফল"]
+          }
+        ]
+      },
+      {
+        part: "gha",
+        bengaliLabel: "ঘ",
+        cognitiveLevel: "উচ্চতর দক্ষতামূলক",
+        marks: 4,
+        questionText: "উদ্দীপকের আলোকে সংশ্লিষ্ট বৈজ্ঞানিক নীতিটির যথার্থতা গাণিতিকভাবে বিশ্লেষণ করে মতামত দাও।",
+        modelAnswer: "প্রাথমিক সিদ্ধান্ত -> গাণিতিক প্রতিপাদন -> সমন্বিত যৌক্তিক সমাপনী।",
+        rubrics: [
+          {
+            id: "r_cq_gha_1_b6e",
+            criterion: "স্পষ্ট সিদ্ধান্ত",
+            maxPoints: 1,
+            description: "নীতিটির প্রযোজ্যতা বিষয়ে সঠিক প্রারম্ভিক অভিমত।",
+            keywords: ["সিদ্ধান্ত", "অভিমত"]
+          },
+          {
+            id: "r_cq_gha_2_b6e",
+            criterion: "গাণিতিক হিসাব",
+            maxPoints: 2,
+            description: "শক্তি সংরক্ষণশীলতা বা বৈজ্ঞানিক নীতির উভয় ক্ষেত্রের গাণিতিক সমতা প্রমাণ।",
+            keywords: ["শক্তি সংরক্ষণশীলতা", "গাণিতিক প্রমাণ"]
+          },
+          {
+            id: "r_cq_gha_3_b6e",
+            criterion: "যৌক্তিক উপসংহার",
+            maxPoints: 1,
+            description: "গাণিতিক ফলাফলের ভিত্তিতে যথার্থতার চূড়ান্ত সিদ্ধান্ত।",
+            keywords: ["উপসংহার", "যথার্থতা"]
+          }
+        ]
+      }
+    ]
+  }
+];
+
 class DataStore {
   private static instance: DataStore;
   private users: User[] = [...DEMO_USERS];
@@ -182,6 +304,7 @@ class DataStore {
   private batches: Batch[] = [...SEED_BATCHES];
   private enrolledStudents: EnrolledStudent[] = [...SEED_ENROLLED_STUDENTS];
   private aiSettings: GlobalAISettings = { ...DEFAULT_AI_SETTINGS };
+  private questions: Question[] = [...SEED_STANDALONE_QUESTIONS];
 
   private constructor() {}
 
@@ -612,6 +735,39 @@ class DataStore {
       pass === validPass
     );
   }
+
+  // Standalone Question Bank Management
+  public getQuestions(): Question[] {
+    return this.questions;
+  }
+
+  public getQuestionById(id: string): Question | undefined {
+    return this.questions.find((q) => q.id === id || (q as any)._id === id);
+  }
+
+  public addQuestion(question: Question): Question {
+    const newQ = {
+      ...question,
+      id: question.id || `q_${Date.now()}`,
+    };
+    this.questions.unshift(newQ);
+    return newQ;
+  }
+
+  public updateQuestion(id: string, updates: Partial<Question>): Question | null {
+    const idx = this.questions.findIndex((q) => q.id === id || (q as any)._id === id);
+    if (idx === -1) return null;
+    this.questions[idx] = { ...this.questions[idx], ...updates };
+    return this.questions[idx];
+  }
+
+  public deleteQuestion(id: string): boolean {
+    const idx = this.questions.findIndex((q) => q.id === id || (q as any)._id === id);
+    if (idx === -1) return false;
+    this.questions.splice(idx, 1);
+    return true;
+  }
+
 }
 
 export const store = DataStore.getInstance();

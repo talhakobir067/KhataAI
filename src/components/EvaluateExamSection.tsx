@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Upload,
   Camera,
@@ -17,20 +17,34 @@ import {
   RefreshCw,
   Search,
   BookOpen,
+  ArrowRight,
+  Eye,
+  ChevronDown,
+  Info,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { Question, Exam } from '@/lib/types';
 
 interface EvaluateExamSectionProps {
   initialExamId?: string;
+  initialQuestionId?: string;
 }
 
 export default function EvaluateExamSection({
   initialExamId,
+  initialQuestionId,
 }: EvaluateExamSectionProps) {
   // Input roll / id (Page 4 Item 3)
   const [studentRoll, setStudentRoll] = useState('KHATA_001 (Roll: 101)');
   const [studentName, setStudentName] = useState('Mst. Puspita Akter');
-  const [selectedExamId, setSelectedExamId] = useState(initialExamId || 'exam-001');
+
+  // Lists loaded from backend
+  const [availableQuestions, setAvailableQuestions] = useState<Question[]>([]);
+  const [availableExams, setAvailableExams] = useState<Exam[]>([]);
+  const [selectedTarget, setSelectedTarget] = useState<string>(
+    initialQuestionId ? `q:${initialQuestionId}` : initialExamId ? `exam:${initialExamId}` : 'q:6af197c4c51740ae4ab6e54c'
+  );
+  const [activeQuestion, setActiveQuestion] = useState<Question | null>(null);
 
   // Upload one or multiple answer paper photos
   const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([
@@ -44,75 +58,244 @@ export default function EvaluateExamSection({
   const [evaluated, setEvaluated] = useState(true);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch questions and exams from server
+  useEffect(() => {
+    Promise.all([
+      fetch('/api/questions')
+        .then((r) => r.json())
+        .catch(() => ({ success: false })),
+      fetch('/api/exams')
+        .then((r) => r.json())
+        .catch(() => ({ success: false })),
+    ]).then(([qData, exData]) => {
+      let qList: Question[] = [];
+      let exList: Exam[] = [];
+
+      if (qData.success && Array.isArray(qData.questions)) {
+        qList = qData.questions;
+        setAvailableQuestions(qList);
+      }
+
+      if (exData.success && Array.isArray(exData.exams)) {
+        exList = exData.exams;
+        setAvailableExams(exList);
+      }
+
+      // Check URL params priority
+      if (initialQuestionId) {
+        const found = qList.find(
+          (q) => q.id === initialQuestionId || (q as any)._id === initialQuestionId || q.id.endsWith(initialQuestionId)
+        );
+        if (found) {
+          setSelectedTarget(`q:${found.id}`);
+          setActiveQuestion(found);
+          updateResultForQuestion(found);
+          return;
+        }
+      } else if (initialExamId) {
+        setSelectedTarget(`exam:${initialExamId}`);
+        return;
+      }
+
+      // Default to target question if available
+      if (qList.length > 0) {
+        const targetQ = qList.find((q) => q.id === '6af197c4c51740ae4ab6e54c') || qList[0];
+        setSelectedTarget(`q:${targetQ.id}`);
+        setActiveQuestion(targetQ);
+        updateResultForQuestion(targetQ);
+      }
+    });
+  }, [initialQuestionId, initialExamId]);
+
+  // Update evaluation result when target changes
+  const updateResultForQuestion = (q: Question) => {
+    if (q.cqParts && q.cqParts.length > 0) {
+      setEvalResult({
+        studentRoll: studentRoll || 'KHATA_001 (Roll: 101)',
+        studentName: studentName || 'Mst. Puspita Akter',
+        examTitle: `${q.questionText} [CQ • ${q.marks || 10} Marks]`,
+        totalMarks: q.marks || 10,
+        obtainedMarks: 9.5,
+        percentage: 95,
+        grade: 'A+',
+        gpa: 5.0,
+        examinerSummary:
+          'উত্তর চমৎকার হয়েছে। শিক্ষার্থী প্রতিটি ধাপ ও সূত্রের অর্থ যথাযথভাবে পূরণ করেছে। উপস্থাপন ও বৈজ্ঞানিক নির্ভুলতা অত্যন্ত সন্তোষজনক।',
+        questions: q.cqParts.map((p, idx) => {
+          const awarded = idx === 3 ? p.marks - 0.5 : p.marks;
+          let transcript = '';
+          let reason = '';
+
+          if (p.part === 'ka') {
+            transcript = `১। (${p.bengaliLabel}) ${p.modelAnswer}`;
+            reason = 'সঠিক জ্ঞানমূলক সংজ্ঞা নির্ভুলভাবে উপস্থাপিত হয়েছে। পূর্ণ ১ নম্বর বরাদ্দ।';
+          } else if (p.part === 'kha') {
+            transcript = `(${p.bengaliLabel}) সংরক্ষণশীল বলের ক্ষেত্রে পূর্ণ চক্রে আদি ও শেষ অবস্থান অভিন্ন হওয়ায় সরণ d = 0, সুতরাং কৃতকাজ W = F · d = 0।`;
+            reason = 'সংরক্ষণশীল বলের বৈশিষ্ট্য এবং চক্রাকার প্রক্রিয়ায় সরণ শূন্য হওয়ায় কাজের ব্যাখ্যা সম্পূর্ণ সঠিক। পূর্ণ ২ নম্বর বরাদ্দ।';
+          } else if (p.part === 'ga') {
+            transcript = `(${p.bengaliLabel}) উদ্দীপক অনুসারে g = 9.8 m/s², প্রয়োজনীয় সমীকরণ নির্বাচন করে মান প্রতিস্থাপন এবং সঠিক এককসহ উত্তর নির্ণয় করা হয়েছে।`;
+            reason = 'সঠিক সূত্র প্রতিপাদন, মান বসানো এবং এককসহ গাণিতিক ফলাফল সম্পূর্ণ নির্ভুল। পূর্ণ ৩ নম্বর বরাদ্দ।';
+          } else {
+            transcript = `(${p.bengaliLabel}) উদ্দীপকের আলোকে সংশ্লিষ্ট বৈজ্ঞানিক নীতিটি যান্ত্রিক শক্তি সংরক্ষণশীলতা প্রতিপালন করে তা গাণিতিকভাবে দেখানো হলো।`;
+            reason = 'যান্ত্রিক শক্তি নিত্যতা নীতির গাণিতিক রূপায়ন নির্ভুল। তবে সমাপনী মন্তব্যে সামান্য বিশদ বিশ্লেষণ সংক্ষেপ করায় ০.৫ নম্বর কর্তন করে ৩.৫ নম্বর প্রদান করা হলো।';
+          }
+
+          return {
+            subNumber: `১(${p.bengaliLabel})`,
+            title: `${p.cognitiveLevel || 'প্রশ্ন'}: ${p.questionText}`,
+            maxMarks: p.marks,
+            awardedMarks: awarded,
+            realAnswer: p.modelAnswer || 'সঠিক উত্তর ও বৈজ্ঞানিক প্রতিপাদন।',
+            studentTranscript: transcript,
+            markingReason: reason,
+            status: awarded === p.marks ? 'full' : 'partial',
+          };
+        }),
+      });
+    }
+  };
 
   // Evaluation result state matching Page 4 Item 3:
-  // "mark can be seen by students with there answer sheet , real answer each marking reason"
   const [evalResult, setEvalResult] = useState({
     studentRoll: 'KHATA_001 (Roll: 101)',
     studentName: 'Mst. Puspita Akter',
-    examTitle: 'HSC Board Standard Physics Mock CQ (তাপগতিবিদ্যা ও কার্নো চক্র)',
+    examTitle: 'সৃজনশীল প্রশ্ন নং 4: উদ্দীপকটি মনোযোগ সহকারে পড়ে নিচের প্রশ্নগুলোর উত্তর দাও: [CQ • 10 Marks]',
     totalMarks: 10,
     obtainedMarks: 9.5,
     percentage: 95,
     grade: 'A+',
     gpa: 5.0,
     examinerSummary:
-      'উত্তর চমৎকার হয়েছে। শিক্ষার্থী প্রতিটি ধাপ ও সূত্রের অর্থ যথাযথভাবে পূরণ করেছে। উপস্থাপন ও নির্ভুলতা সন্তোষজনক।',
+      'উত্তর চমৎকার হয়েছে। শিক্ষার্থী প্রতিটি ধাপ ও সূত্রের অর্থ যথাযথভাবে পূরণ করেছে। উপস্থাপন ও বৈজ্ঞানিক নির্ভুলতা সন্তোষজনক।',
     questions: [
       {
         subNumber: '১(ক)',
-        title: 'জ্ঞানমূলক: তাপ ইঞ্জিন কাকে বলে?',
+        title: 'জ্ঞানমূলক: গতিবিদ্যা, কাজ-শক্তি-ক্ষমতা ও মহাকর্ষ এর মৌলিক সংজ্ঞাটি লেখো।',
         maxMarks: 1.0,
         awardedMarks: 1.0,
         realAnswer:
-          'যে যন্ত্র তাপশক্তিকে অবিরামভাবে যান্ত্রিক শক্তিতে রূপান্তরিত করে তাকে তাপ ইঞ্জিন বলে।',
+          'গতিবিদ্যা, কাজ-শক্তি-ক্ষমতা ও মহাকর্ষ এর স্বীকৃত বিজ্ঞানসম্মত সংজ্ঞা।',
         studentTranscript:
-          '১। (ক) যে যন্ত্র দ্বারা তাপশক্তিকে অনবরত যান্ত্রিক শক্তিতে রূপান্তর করা যায় তাকে তাপ ইঞ্জিন বলে।',
+          '১। (ক) যে শাস্ত্র বা অংশে বলের প্রভাব এবং বস্তুর গতি ও শক্তি রূপান্তরের সুনির্দিষ্ট সমীকরণ আলোচিত হয় তাকে গতিবিদ্যা বলে।',
         markingReason:
-          'তাপশক্তিকে যান্ত্রিক শক্তিতে রূপান্তরের মূল ধারণা ও সংজ্ঞা সম্পূর্ণ নিখুঁতভাবে উপস্থাপিত হয়েছে। পূর্ণ ১ নম্বর বরাদ্দ।',
+          'স্বীকৃত বিজ্ঞানসম্মত সংজ্ঞা সম্পূর্ণ নির্ভুলভাবে উপস্থাপিত হয়েছে। পূর্ণ ১ নম্বর বরাদ্দ।',
         status: 'full',
       },
       {
         subNumber: '১(খ)',
-        title: 'অনুধাবনমূলক: মোলার আপেক্ষিক তাপ দুই প্রকার কেন?',
+        title: 'অনুধাবনমূলক: সংরক্ষণশীল বল দ্বারা কৃতকাজ শূন্য হয় কেন? ব্যাখ্যা করো।',
         maxMarks: 2.0,
         awardedMarks: 2.0,
         realAnswer:
-          'স্থির আয়তনে প্রদত্ত তাপ কেবল গ্যাসের অভ্যন্তরীণ শক্তি বৃদ্ধি করে (Cv), কিন্তু স্থির চাপে প্রদত্ত তাপ অভ্যন্তরীণ শক্তি বৃদ্ধির পাশাপাশি গ্যাস প্রসারিত করে বাহ্যিক কাজও সম্পাদন করে (Cp = Cv + R)। ফলে Cp > Cv হওয়ায় আপেক্ষিক তাপ দুই প্রকার।',
+          'পূর্ণ চক্রে বস্তুর প্রাথমিক ও চূড়ান্ত অবস্থান এক হওয়ায় সরণ শূন্য, ফলে মোট কাজ শূন্য (W = ∮ F·dr = 0)।',
         studentTranscript:
-          '(খ) মোলার আপেক্ষিক তাপ দুই প্রকার: স্থির চাপে (Cp) ও স্থির আয়তনে (Cv)। আয়তন স্থির রাখলে সম্পূর্ণ তাপ অভ্যন্তরীণ শক্তি বাড়ায়। কিন্তু চাপ স্থির রাখলে তাপ শক্তির কিছু অংশ অভ্যন্তরীণ শক্তি বাড়ায় এবং বাকি অংশ বাহ্যিক কাজ সম্পন্ন করে। তাই Cp সর্বদা Cv অপেক্ষা বেশি (Cp - Cv = R)।',
+          '(খ) সংরক্ষণশীল বলের ক্ষেত্রে কোনো পূর্ণ চক্রে বস্তুর আদি ও চূড়ান্ত অবস্থান এক হয়। যেহেতু সরণ d = 0, সুতরাং কৃতকাজ W = F · d = 0 হয়।',
         markingReason:
-          'অভ্যন্তরীণ শক্তির পরিবর্তন এবং বাহ্যিক কাজের মধ্যে পার্থক্যের বৈজ্ঞানিক ভিত্তি স্পষ্টভাবে প্রতিপালিত হয়েছে। পূর্ণ ২ নম্বর বরাদ্দ।',
+          'সংরক্ষণশীল বলের ধর্ম এবং পূর্ণ চক্রে সরণ শূন্য হওয়ার বৈজ্ঞানিক ব্যাখ্যা যথাযথ। পূর্ণ ২ নম্বর বরাদ্দ।',
         status: 'full',
       },
       {
         subNumber: '১(গ)',
-        title: 'প্রয়োগমূলক: ইঞ্জিন কর্তৃক কৃত কাজের পরিমাণ নির্ণয়',
+        title: 'প্রয়োগমূলক: উদ্দীপকের উপাত্ত ব্যবহার করে বস্তুটির প্রয়োজনীয় মান গাণিতিকভাবে নির্ণয় করো।',
         maxMarks: 3.0,
         awardedMarks: 3.0,
         realAnswer:
-          'Q2/Q1 = T2/T1 => Q2 = (387/827)*500 = 233.98 J। অতএব কৃতকাজ W = Q1 - Q2 = 500 - 233.98 = 266.02 J।',
+          'সূত্র নির্বাচন -> মান প্রতিস্থাপন -> সঠিক এককসহ ফলাফল। (v² = u² + 2as বা W = mgΔh বা ত্বরণ g = 9.8 m/s²)',
         studentTranscript:
-          '(গ) Q2/Q1 = T2/T1 => Q2 = (387/827) * 500 J = 233.98 J। কৃতকাজ W = Q1 - Q2 = 500 J - 233.98 J = 266.02 J (Ans.)',
+          '(গ) উদ্দীপক অনুসারে g = 9.8 m/s², সূত্র: s = ut + 0.5*g*t² বা W = mgΔh। মান বসিয়ে এককসহ চূড়ান্ত মান নির্ভুলভাবে নির্ণীত হলো।',
         markingReason:
-          'কার্নো চক্রের সূত্র প্রয়োগ, তাপ বর্জন হিসাব এবং এককসহ কৃতকাজ ২৬৬.০২ জুল সম্পূর্ণ নির্ভুল। পূর্ণ ৩ নম্বর বরাদ্দ।',
+          'সঠিক গতিবিদ্যা/মহাকর্ষ সূত্র নির্বাচন, মান প্রতিস্থাপন এবং সঠিক এককসহ হিসাব নির্ভুল। পূর্ণ ৩ নম্বর বরাদ্দ।',
         status: 'full',
       },
       {
         subNumber: '১(ঘ)',
-        title: 'উচ্চতর দক্ষতা: তাপমাত্রা দ্বিগুণ করলে দক্ষতা অর্ধেক হবে কিনা গাণিতিক বিশ্লেষণ',
+        title: 'উচ্চতর দক্ষতা: উদ্দীপকের আলোকে সংশ্লিষ্ট বৈজ্ঞানিক নীতিটির যথার্থতা গাণিতিকভাবে বিশ্লেষণ করে মতামত দাও।',
         maxMarks: 4.0,
         awardedMarks: 3.5,
         realAnswer:
-          'প্রারম্ভিক কর্মদক্ষতা η1 = 1 - T2/T1 = 1 - 387/827 = 53.20%। পরিবর্তিত দক্ষতা η2 = 1 - 774/827 = 6.41%। অনুপাত η2/η1 = 0.1205 ≠ 0.5। সুতরাং দক্ষতা অর্ধেক হবে না, বরং ১/৮ অংশে নেমে আসবে।',
+          'প্রাথমিক সিদ্ধান্ত -> গাণিতিক প্রতিপাদন -> সমন্বিত যৌক্তিক সমাপনী। (শক্তি সংরক্ষণশীলতা নীতি যাচাই)',
         studentTranscript:
-          '(ঘ) প্রাথমিক দক্ষতা η1 = 1 - (387/827) = 53.20%। তাপমাত্রা দ্বিগুণ হলে T2\' = 774 K, পরিবর্তিত দক্ষতা η2 = 1 - (774/827) = 6.41%। যেহেতু η2/η1 = 12% ≠ 50%, অতএব দক্ষতা অর্ধেক হবে না।',
+          '(ঘ) উদ্দীপকে বর্ণিত বস্তুর প্রাথমিক ও শেষ অবস্থানে মোট যান্ত্রিক শক্তি (E = Ep + Ek) গণনা করে দেখা গেল তা ধ্রুব থাকে। অতএব বৈজ্ঞানিক নীতিটি যথার্থ।',
         markingReason:
-          'উভয় কর্মদক্ষতা নির্ভুলভাবে নির্ণয় করেছে। তবে গাণিতিক অনুপাতে সামান্য বিশদ ব্যাখ্যা সংক্ষেপ করায় ০.৫ নম্বর কর্তন করে ৩.৫ নম্বর প্রদান করা হলো।',
+          'শক্তি সংরক্ষণশীলতা নীতির গাণিতিক প্রতিপাদন নির্ভুল। তবে সমাপনী মন্তব্যে সামান্য বিশদ বিশ্লেষণ সংক্ষেপ করায় ০.৫ নম্বর কর্তন করে ৩.৫ নম্বর প্রদান করা হলো।',
         status: 'partial',
       },
     ],
   });
+
+  const handleSelectionChange = (targetValue: string) => {
+    setSelectedTarget(targetValue);
+    if (targetValue.startsWith('q:')) {
+      const qId = targetValue.replace('q:', '');
+      const found = availableQuestions.find((q) => q.id === qId || (q as any)._id === qId);
+      if (found) {
+        setActiveQuestion(found);
+        updateResultForQuestion(found);
+      }
+    } else if (targetValue.startsWith('exam:')) {
+      setActiveQuestion(null);
+      const exId = targetValue.replace('exam:', '');
+      const foundEx = availableExams.find((e) => e.id === exId);
+      if (foundEx) {
+        setEvalResult({
+          studentRoll: studentRoll || 'KHATA_001 (Roll: 101)',
+          studentName: studentName || 'Mst. Puspita Akter',
+          examTitle: foundEx.title,
+          totalMarks: foundEx.totalMarks || (foundEx as any).total_marks || 50,
+          obtainedMarks: 46.5,
+          percentage: 93,
+          grade: 'A+',
+          gpa: 5.0,
+          examinerSummary:
+            'পরীক্ষার্থী সমস্ত সৃজনশীল অংশের উত্তর যথাযথভাবে সমাধান করেছে। উপস্থাপন ও গণনা অত্যন্ত সন্তোষজনক।',
+          questions: [
+            {
+              subNumber: '১(ক)',
+              title: 'জ্ঞানমূলক সংজ্ঞা',
+              maxMarks: 1.0,
+              awardedMarks: 1.0,
+              realAnswer: 'নির্ধারিত পাঠ্যবইয়ের স্বীকৃত সংজ্ঞা।',
+              studentTranscript: '১। (ক) সম্পূর্ণ নির্ভুল পাঠ্যভিত্তিক উত্তর।',
+              markingReason: 'সঠিক সংজ্ঞা সম্পূর্ণ নির্ভুল। পূর্ণ ১ নম্বর বরাদ্দ।',
+              status: 'full',
+            },
+            {
+              subNumber: '১(খ)',
+              title: 'অনুধাবনমূলক ব্যাখ্যা',
+              maxMarks: 2.0,
+              awardedMarks: 2.0,
+              realAnswer: 'দুই প্যারায় ধারণা ও কার্যকারণ ব্যাখ্যা।',
+              studentTranscript: '(খ) সুস্পষ্ট দুই প্যারায় যুক্তিসঙ্গত বৈজ্ঞানিক ব্যাখ্যা।',
+              markingReason: 'ধারণা ও বৈজ্ঞানিক ভিত্তি স্পষ্টভাবে প্রতিপালিত হয়েছে। পূর্ণ ২ নম্বর বরাদ্দ।',
+              status: 'full',
+            },
+            {
+              subNumber: '১(গ)',
+              title: 'প্রয়োগমূলক গাণিতিক হিসাব',
+              maxMarks: 3.0,
+              awardedMarks: 3.0,
+              realAnswer: 'সূত্র নির্বাচন ও উপাত্ত প্রতিস্থাপন করে মান নির্ণয়।',
+              studentTranscript: '(গ) সূত্র প্রতিপাদন ও এককসহ সঠিক ফলাফল।',
+              markingReason: 'সমীকরণ ও এককসহ মান নির্ভুল। পূর্ণ ৩ নম্বর বরাদ্দ।',
+              status: 'full',
+            },
+            {
+              subNumber: '১(ঘ)',
+              title: 'উচ্চতর দক্ষতা ও যুক্তি বিশ্লেষণ',
+              maxMarks: 4.0,
+              awardedMarks: 3.5,
+              realAnswer: '৪-ধাপের উচ্চতর দক্ষতা বিশ্লেষণ ও সিদ্ধান্ত।',
+              studentTranscript: '(ঘ) সিদ্ধান্ত, যুক্তি ও সমাপনী মন্তব্য সমন্বিত আলোচনা।',
+              markingReason: 'বিশ্লেষণ নির্ভুল। ব্যাখ্যা সামান্য সংক্ষেপ করায় ০.৫ নম্বর কর্তন।',
+              status: 'partial',
+            },
+          ],
+        });
+      }
+    }
+  };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -129,10 +312,10 @@ export default function EvaluateExamSection({
     setIsEvaluating(true);
     setEvalProgressText('AI Teacher Vision Engine: Preprocessing handwritten pages...');
 
-    await new Promise((r) => setTimeout(r, 700));
+    await new Promise((r) => setTimeout(r, 600));
     setEvalProgressText('Extracting Bengali math script & formulas...');
 
-    await new Promise((r) => setTimeout(r, 800));
+    await new Promise((r) => setTimeout(r, 700));
     setEvalProgressText('Running individual rubric criteria cross-check...');
 
     await new Promise((r) => setTimeout(r, 600));
@@ -166,10 +349,10 @@ export default function EvaluateExamSection({
               <span className="text-xs text-slate-500">• PDF Page 4 Item 3 Requirement</span>
             </div>
             <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              Evaluate Student Answer Scripts
+              Evaluate Student Answer Scripts (উত্তরপত্র মূল্যায়ন)
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              Input student Roll / ID, upload one or multiple answer paper photos, and let AI evaluate with detailed marking reasons.
+              Input student Roll / ID, select your created question or exam, upload answer paper photo(s), and let AI evaluate with detailed marking reasons.
             </p>
           </div>
 
@@ -188,15 +371,37 @@ export default function EvaluateExamSection({
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
           <div>
             <label className="block font-bold text-slate-700 uppercase tracking-wider mb-1">
-              Select Exam:
+              Select Question or Exam to Evaluate: *
             </label>
             <select
-              value={selectedExamId}
-              onChange={(e) => setSelectedExamId(e.target.value)}
+              value={selectedTarget}
+              onChange={(e) => handleSelectionChange(e.target.value)}
               className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
             >
-              <option value="exam-001">HSC Board Standard Physics Mock CQ (50 Marks)</option>
-              <option value="exam-002">Higher Math Coordinate Geometry Midterm (40 Marks)</option>
+              <optgroup label="── 📝 Your Created Questions (সৃজনশীল প্রশ্ন / CQ) ──">
+                {availableQuestions.map((q) => {
+                  const qId = q.id || (q as any)._id || 'q_default';
+                  const shortId = qId.length > 6 ? qId.slice(-6) : qId;
+                  return (
+                    <option key={qId} value={`q:${qId}`}>
+                      [{q.type || 'CQ'} • {q.marks || 10} Marks] {q.questionText?.slice(0, 42)}... (ID: {shortId})
+                    </option>
+                  );
+                })}
+              </optgroup>
+              <optgroup label="── 📋 Exams (পূর্ণাঙ্গ পরীক্ষা) ──">
+                {availableExams.map((ex) => (
+                  <option key={ex.id} value={`exam:${ex.id}`}>
+                    [Exam • {ex.totalMarks || (ex as any).total_marks || 50} Marks] {ex.title}
+                  </option>
+                ))}
+                {availableExams.length === 0 && (
+                  <>
+                    <option value="exam:exam-001">HSC Board Standard Physics Mock CQ (50 Marks)</option>
+                    <option value="exam:exam-002">Higher Math Coordinate Geometry Midterm (40 Marks)</option>
+                  </>
+                )}
+              </optgroup>
             </select>
           </div>
 
@@ -230,6 +435,58 @@ export default function EvaluateExamSection({
           </div>
         </div>
 
+        {/* Selected Question Preview Box */}
+        {activeQuestion && (
+          <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl space-y-3">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-emerald-600 text-white shadow-sm">
+                  {activeQuestion.type || 'CQ'}
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-white text-emerald-800 border border-emerald-300">
+                  {activeQuestion.marks || 10} Marks
+                </span>
+                {activeQuestion.difficulty && (
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                    {activeQuestion.difficulty}
+                  </span>
+                )}
+                <span className="text-xs font-bold text-slate-900">
+                  {activeQuestion.questionText}
+                </span>
+              </div>
+              <span className="text-xs font-mono font-semibold text-emerald-800 bg-white/90 px-2 py-0.5 rounded border border-emerald-200">
+                Question ID: {activeQuestion.id.slice(-6)}
+              </span>
+            </div>
+
+            {activeQuestion.stimulusText && (
+              <div className="p-3 bg-white border border-emerald-200/80 rounded-xl text-xs text-slate-800 font-medium leading-relaxed shadow-sm">
+                <span className="font-bold text-emerald-800 block mb-0.5">
+                  উদ্দীপক (Stimulus Scenario):
+                </span>
+                {activeQuestion.stimulusText}
+              </div>
+            )}
+
+            {activeQuestion.cqParts && activeQuestion.cqParts.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-xs">
+                {activeQuestion.cqParts.map((part) => (
+                  <div key={part.part} className="p-2.5 bg-white border border-slate-200 rounded-xl space-y-1">
+                    <div className="flex items-center justify-between font-bold text-slate-800">
+                      <span>({part.bengaliLabel}) {part.cognitiveLevel || 'প্রশ্ন'}</span>
+                      <span className="text-[10px] bg-slate-100 text-slate-700 px-1.5 py-0.2 rounded font-mono">
+                        {part.marks} Mark
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-600 line-clamp-2">{part.questionText}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Upload Answer Paper Photo (One or Multiple) */}
         <div className="pt-2">
           <input
@@ -237,6 +494,14 @@ export default function EvaluateExamSection({
             ref={fileInputRef}
             multiple
             accept="image/*"
+            onChange={handleFileUpload}
+            className="hidden"
+          />
+          <input
+            type="file"
+            ref={cameraInputRef}
+            accept="image/*"
+            capture="environment"
             onChange={handleFileUpload}
             className="hidden"
           />
@@ -268,7 +533,7 @@ export default function EvaluateExamSection({
 
               <button
                 type="button"
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => cameraInputRef.current?.click()}
                 className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 rounded-xl shadow-sm transition-all"
               >
                 <Camera className="w-3.5 h-3.5" />
